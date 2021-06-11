@@ -7,14 +7,14 @@ The main purpose of this feature is to speed up the multiplayer game development
 ## How to use
 
 1. Add the plugin to your project and enable it.
-2. Configure the plugin in Project Settings. The settings are located under *Debug -> Multirun*.
+2. Configure the plugin in Project Settings. The settings are located under *Debug → Multirun*.
 3. Run the script by clicking the multirun button on the top right corner of Godot editor, or press F8 on keyboard.
 
 Extra: next to the multirun button there is also a new folder button that opens the `"user://"` path when clicked.
 
 ## Settings
 
-Under the Project Settings there is a new category *Debug->Multirun* with the following parameters:
+Under the Project Settings there is a new category *Debug → Multirun* with the following parameters:
 * **Window Distance** - distance in pixels between different windows. It offsets the windows so that they don't appear on top of each other.
 * **Number of Windows** - the total number of windows it opens.
 * **Add Custom Args** - when checked, it will add the user defined command line arguments to the opened game instances.
