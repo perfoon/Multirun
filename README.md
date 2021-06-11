@@ -1,8 +1,8 @@
 # Multirun
 
-Multirun allows to start multiple game instances at once.
+Multirun allows starting multiple game instances at once.
 
-The main purpose of this feature is to speed up the multiplayer game development. One game instance can be configured to host the game and others to join.
+The main purpose of this feature is to speed up multiplayer game development. One game instance can be configured to host the game and others to join.
 
 ## How to use
 
