@@ -12,6 +12,8 @@ The main purpose of this feature is to speed up the multiplayer game development
 
 Extra: next to the multirun button there is also a new folder button that opens the `"user://"` path when clicked.
 
+![Screenshot](screenshots/MultirunPreview.png)
+
 ## Settings
 
 Under the Project Settings there is a new category *Debug → Multirun* with the following parameters:
@@ -21,6 +23,9 @@ Under the Project Settings there is a new category *Debug → Multirun* with the
 * **First Window Args** - custom command line arguments that will be applied to the first game window. To add multiple arguments, separate them with a space.
 * **Other Window Args** - custom command line arguments that will be applied to all other game windows. To add multiple arguments, separate them with a space.
 
+![Screenshot](screenshots/MultirunSettings.png)
+
 ## Additional Information
 
 Finding problems in the code, open a ticket on [GitHub](https://github.com/perfoon/Multirun/issues).
+
