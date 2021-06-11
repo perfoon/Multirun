@@ -20,8 +20,8 @@ Under the Project Settings there is a new category *Debug → Multirun* with the
 * **Window Distance** - distance in pixels between different windows. It offsets the windows so that they don't appear on top of each other.
 * **Number of Windows** - the total number of windows it opens.
 * **Add Custom Args** - when checked, it will add the user defined command line arguments to the opened game instances.
-* **First Window Args** - custom command line arguments that will be applied to the first game window. To add multiple arguments, separate them with a space.
-* **Other Window Args** - custom command line arguments that will be applied to all other game windows. To add multiple arguments, separate them with a space.
+* **First Window Args** - custom command line arguments that will be applied to the first window. To add multiple arguments, separate them with a space.
+* **Other Window Args** - custom command line arguments that will be applied to all other windows. To add multiple arguments, separate them with a space.
 
 ![Screenshot](screenshots/MultirunSettings.png)
 
