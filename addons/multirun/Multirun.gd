@@ -43,11 +43,15 @@ func _loaddir_pressed():
 	pass
 
 func _exit_tree():
-	remove_control_from_container(CONTAINER_TOOLBAR, panel1)
-	remove_control_from_container(CONTAINER_TOOLBAR, panel2)
-	panel1.free()
-	panel2.free();
-	pass
+	_remove_panels()
+
+func _remove_panels():
+	if panel1:
+		remove_control_from_container(CONTAINER_TOOLBAR, panel1)
+		panel1.free()
+	if panel2:
+		remove_control_from_container(CONTAINER_TOOLBAR, panel2)
+		panel2.free()
 
 func _unhandled_input(event):	
 	if event is InputEventKey:
