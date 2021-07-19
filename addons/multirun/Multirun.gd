@@ -3,6 +3,7 @@ extends EditorPlugin
 
 var panel1
 var panel2
+var pids = []
 
 func _enter_tree():
 	var editor_node = get_tree().get_root().get_child(0)
@@ -30,20 +31,34 @@ func _multirun_pressed():
 	if first_args && add_custom_args:
 		for arg in first_args.split(" "):
 			commands.push_front(arg)
-	OS.execute(OS.get_executable_path(), commands, false)
+
+	var main_run_args = ProjectSettings.get_setting("editor/main_run_args")
+	if main_run_args != first_args:
+		ProjectSettings.set_setting("editor/main_run_args", first_args)
+	var interface = get_editor_interface()
+	interface.play_main_scene()
+	if main_run_args != first_args:
+		ProjectSettings.set_setting("editor/main_run_args", main_run_args)
+
+	kill_pids()
 	for i in range(window_count-1):
 		commands = ["--position", str(50 + (i+1) * window_dist) + ",10"]
 		if other_args && add_custom_args:
 			for arg in other_args.split(" "):
 				commands.push_front(arg)
-		OS.execute(OS.get_executable_path(), commands, false)
+		pids.append(OS.execute(OS.get_executable_path(), commands, false))
 
 func _loaddir_pressed():
 	OS.shell_open(OS.get_user_data_dir())
-	pass
 
 func _exit_tree():
 	_remove_panels()
+	kill_pids()
+	
+func kill_pids():
+	for pid in pids:
+		OS.kill(pid)
+	pids = []
 
 func _remove_panels():
 	if panel1:
@@ -55,7 +70,7 @@ func _remove_panels():
 
 func _unhandled_input(event):	
 	if event is InputEventKey:
-		if event.pressed and event.scancode == KEY_F8:
+		if event.pressed and event.scancode == KEY_F4:
 			_multirun_pressed()
 
 func _add_tooblar_button(action:String, icon_normal, icon_pressed):
@@ -77,4 +92,3 @@ func _add_setting(name:String, type, value):
 		"type": type
 	}
 	ProjectSettings.add_property_info(property_info)
-	

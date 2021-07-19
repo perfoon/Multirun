@@ -8,7 +8,7 @@ The main purpose of this feature is to speed up multiplayer game development. On
 
 1. Add the plugin to your project and enable it.
 2. Configure the plugin in Project Settings. The settings are located under *Debug → Multirun*.
-3. Run the script by clicking the multirun button on the top right corner of Godot editor, or press F8 on keyboard.
+3. Run the script by clicking the multirun button on the top right corner of Godot editor, or press F4 on keyboard.
 
 Extra: next to the multirun button there is also a new folder button that opens the `"user://"` path when clicked.
 
