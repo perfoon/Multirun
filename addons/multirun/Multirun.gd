@@ -1,6 +1,9 @@
 tool
 extends EditorPlugin
 
+# Mac: If your Godot app isn't in this folder path, it will need to be updated for multirun to work
+const godot_editor_file_path_mac = "/Applications/Godot.app/Contents/MacOS/Godot"
+
 var panel1
 var panel2
 var pids = []
@@ -12,8 +15,8 @@ func _enter_tree():
 	var icon_transition_auto = gui_base.get_icon("TransitionSyncAuto", "EditorIcons")
 	var icon_load = gui_base.get_icon("Load", "EditorIcons")
 	
-	panel2 = _add_tooblar_button("_loaddir_pressed", icon_load, icon_load)
-	panel1 = _add_tooblar_button("_multirun_pressed", icon_transition, icon_transition_auto)
+	panel2 = _add_toolbar_button("_loaddir_pressed", icon_load, icon_load)
+	panel1 = _add_toolbar_button("_multirun_pressed", icon_transition, icon_transition_auto)
 	
 	_add_setting("debug/multirun/number_of_windows", TYPE_INT, 2)
 	_add_setting("debug/multirun/window_distance", TYPE_INT, 1270)
@@ -46,7 +49,14 @@ func _multirun_pressed():
 		if other_args && add_custom_args:
 			for arg in other_args.split(" "):
 				commands.push_front(arg)
-		pids.append(OS.execute(OS.get_executable_path(), commands, false))
+		# If mac, then need different path
+		if OS.get_name() == "OSX":
+			# For some reason, executing multiple shell commands on one OS.execute wouldn't work correctly
+			# but it works when just executing one command per OS.execute, so 2 are needed here
+			OS.execute('cd', [ProjectSettings.globalize_path("res://")], true)
+			pids.append(OS.execute(godot_editor_file_path_mac, commands, false))
+		else:
+			pids.append(OS.execute(OS.get_executable_path(), commands, false))	
 
 func _loaddir_pressed():
 	OS.shell_open(OS.get_user_data_dir())
@@ -73,7 +83,7 @@ func _unhandled_input(event):
 		if event.pressed and event.scancode == KEY_F4:
 			_multirun_pressed()
 
-func _add_tooblar_button(action:String, icon_normal, icon_pressed):
+func _add_toolbar_button(action:String, icon_normal, icon_pressed):
 	var panel = PanelContainer.new()
 	var b = TextureButton.new();
 	b.texture_normal = icon_normal
