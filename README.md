@@ -4,28 +4,52 @@ Multirun allows starting multiple game instances at once.
 
 The main purpose of this feature is to speed up multiplayer game development. One game instance can be configured to host the game and others to join.
 
+![showcase](https://i.postimg.cc/PqwFqP7N/showcase.gif)
+
+Tested on Godot v3.5
+
+## Installation
+
+This plugin is installed the same way as other Godot plugins.
+
+Download the code by clicking green `Code` button and then `Download ZIP`. Unpack it anywhere you like.
+
+Copy the folder `addons/dreadpon.spatial_gardener/` to `res://addons/` in your Godot project and enable it from `Project -> Project Settings -> Plugins`.
+
+**NOTE:** this plugin relies on an autoload singleton `res://addons/multirun/instance_setup.gd` under the name of `MultirunInstanceSetup` to run.
+If your windows aren't positioning themselves correctly, check if `MultirunInstanceSetup` is properly loaded.
+
+![autoload-setup](screenshots/autoload-setup.jpg)
+
 ## How to use
 
-1. Add the plugin to your project and enable it.
-2. Configure the plugin in Project Settings. The settings are located under *Debug → Multirun*.
-3. Run the script by clicking the multirun button on the top right corner of Godot editor, or press F4 on keyboard.
+Launching game instances can be done via buttons in the top right corner of Godot editor.
+- 1 - open `user://` directory
+- 2 - run all instances (or *re*launch if already launched)
+- 3 - run a specific instance (will honor it's window positioning and custom `user://` directory)
+- 4 - stop all running instances
 
-Extra: next to the multirun button there is also a new folder button that opens the `"user://"` path when clicked.
+![launch-instances](screenshots/launch-instances.jpg)
 
-![Screenshot](screenshots/MultirunPreview.png)
+This plugin also supports personal subfolders for each instance ran. They are meant to be used instead of a regular `user://` path.
+
+![subdirectories](screenshots/subdirectories.jpg)
+
+A personal path can be accessed via singleton `MultirunInstanceSetup.instance_user_dir` or `MultirunInstanceSetup.get_user_path()`. When launched standalone, this path will refer to `user://` as usual and only change when you are, indeed, "multirunning" your game.
 
 ## Settings
 
-Under the Project Settings there is a new category *Debug → Multirun* with the following parameters:
-* **Window Distance** - distance in pixels between different windows. It offsets the windows so that they don't appear on top of each other.
-* **Number of Windows** - the total number of windows it opens.
-* **Add Custom Args** - when checked, it will add the user defined command line arguments to the opened game instances.
-* **First Window Args** - custom command line arguments that will be applied to the first window. To add multiple arguments, separate them with a space.
-* **Other Window Args** - custom command line arguments that will be applied to all other windows. To add multiple arguments, separate them with a space.
+You can configure the following settings in the `Project -> Project Settings -> Multirun`:
+- `Number Of Windows` to run
+- `Distance Between Windows` if you need extra space betwenen them. **NOTE:** there's some space between them by default: Windows OS includes "active zones" (for manually changing window size) when calculating window bounds
+- `Individual Instance Args` - console arguments to pass to each instance as dictionary of instace indices as keys and string of arguments as values. **NOTE:** to pass the same args to ALL instances use the key of `-1`
+- Key `Shortcuts` for actions defined in paragraph 1
 
-![Screenshot](screenshots/MultirunSettings.png)
+![settings](screenshots/settings.jpg)
 
 ## Additional Information
 
 Finding problems in the code, open a ticket on [GitHub](https://github.com/perfoon/Multirun/issues).
+
+**NOTE:** it might take some time to merge v.2.0.0 to main, in which case Dreadpon should be tagged for their resolution.
 

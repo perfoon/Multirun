@@ -73,3 +73,9 @@ func setup_instance(arguments: Dictionary):
 	OS.window_size -= decorations_size
 
 
+# Get full path to dir/file with the instance dir path
+# If we were to replicate 'user://dir/file.cfg'
+# We would pass just 'dir/file.cfg'
+# And receive 'user://instance_user_dir/dir/file.cfg'
+func get_user_path(relative_path: String) -> String:
+	return instance_user_dir + relative_path

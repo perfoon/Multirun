@@ -11,18 +11,19 @@ extends EditorPlugin
 const PTH_NUMBER_OF_WINDOWS: String 			= 'multirun/settings/number_of_windows'
 const PTH_DISTANCE_BETWEEN_WINDOWS: String 		= 'multirun/settings/distance_between_window'
 const PTH_INDIVIDUAL_INSTANCE_ARGS: String 		= 'multirun/settings/individual_instance_args'
-const PTH_ADD_INDIVIDUAL_INSTANCE_ARGS: String 	= 'multirun/settings/add_individual_instance_args'
 const PTH_USER_DIR_SHORTCUT: String 			= 'multirun/shortcuts/user_dir'
 const PTH_RUN_SHORTCUT: String 					= 'multirun/shortcuts/run'
+const PTH_RUN_INSTANCE_SHORTCUT: String 		= 'multirun/shortcuts/run_instance'
 const PTH_STOP_SHORTCUT: String 				= 'multirun/shortcuts/stop'
 
 
 var icons: Dictionary = {}
 var button_user_dir: ToolButton = null
 var button_run: ToolButton = null
+var button_run_instance: OptionButton = null
 var button_stop: ToolButton = null
 
-var instance_pids: Array = []
+var instance_pids: Dictionary = {}
 var are_instances_running: bool = false setget _set_are_instances_running
 var refresh_timer: Timer = Timer.new()
 var refresh_wait_time: float = 0.5
@@ -38,6 +39,7 @@ var refresh_wait_time: float = 0.5
 func _ready():
 	add_autoload_singleton('MultirunInstanceSetup', 'res://addons/multirun/instance_setup.gd')
 	_setup_refresh_timer()
+	_update_button_icons()
 
 
 func _enter_tree():
@@ -49,7 +51,7 @@ func _enter_tree():
 
 func _exit_tree():
 	_remove_buttons()
-	kill_all_instances()
+	kill_instances()
 	ProjectSettings.disconnect('project_settings_changed', self, '_on_project_settings_changed')
 
 
@@ -84,6 +86,7 @@ func _cache_icons():
 	icons.transition 	= gui_base.get_icon("TransitionSync", "EditorIcons")
 	icons.stop 			= gui_base.get_icon("Stop", "EditorIcons")
 	icons.rotate_left	= gui_base.get_icon("RotateLeft", "EditorIcons")
+	icons.transition_end= gui_base.get_icon("TransitionEnd", "EditorIcons")
 
 
 func _add_buttons():
@@ -97,6 +100,11 @@ func _add_buttons():
 		ProjectSettings.get_setting(PTH_RUN_SHORTCUT),
 		'Run multiple instances of the main scene.')
 	
+	button_run_instance = _add_run_instance_button(
+		"_run_instance_pressed", icons.transition_end, 
+		ProjectSettings.get_setting(PTH_RUN_INSTANCE_SHORTCUT),
+		'Run a specific (numbered) instance of the main scene.')
+	
 	button_stop = _add_toolbar_button(
 		"_stop_pressed", icons.stop,
 		ProjectSettings.get_setting(PTH_STOP_SHORTCUT),
@@ -107,12 +115,29 @@ func _remove_buttons():
 	if button_run:
 		remove_control_from_container(CONTAINER_TOOLBAR, button_run)
 		button_run.queue_free()
+	if button_run_instance:
+		remove_control_from_container(CONTAINER_TOOLBAR, button_run_instance)
+		button_run_instance.queue_free()
 	if button_user_dir:
 		remove_control_from_container(CONTAINER_TOOLBAR, button_user_dir)
 		button_user_dir.queue_free()
 	if button_stop:
 		remove_control_from_container(CONTAINER_TOOLBAR, button_stop)
 		button_stop.queue_free()
+
+
+func _add_run_instance_button(method_name: String, icon, shortcut: Dictionary = {}, tooltip: String = '') -> OptionButton:
+	var button = OptionButton.new();
+	add_control_to_container(CONTAINER_TOOLBAR, button)
+	
+	button.icon = icon
+	if shortcut:
+		button.shortcut = _shortcut_from_dict(shortcut)
+		button.shortcut_in_tooltip = true
+	button.hint_tooltip = tooltip
+	button.connect('item_selected', self, '_run_instance_instance_pressed')
+	
+	return button
 
 
 func _add_toolbar_button(method_name: String, icon, shortcut: Dictionary = {}, tooltip: String = '') -> ToolButton:
@@ -129,11 +154,13 @@ func _add_toolbar_button(method_name: String, icon, shortcut: Dictionary = {}, t
 	return button
 
 
-func _update_run_button_icon():
+func _update_button_icons():
 	if are_instances_running:
 		button_run.icon = icons.rotate_left
+		button_stop.disabled = false
 	else:
 		button_run.icon = icons.transition
+		button_stop.disabled = true
 
 
 
@@ -148,11 +175,17 @@ func _user_dir_pressed():
 
 
 func _run_pressed():
-	run_all_instances()
+	run_instances()
+
+
+func _run_instance_instance_pressed(idx: int):
+	button_run_instance.select(-1)
+	button_run_instance.icon = icons.transition_end
+	run_instances([idx])
 
 
 func _stop_pressed():
-	kill_all_instances()
+	kill_instances()
 
 
 
@@ -165,10 +198,6 @@ func _stop_pressed():
 func _add_settings():
 	_add_setting(PTH_NUMBER_OF_WINDOWS, TYPE_INT, 4)
 	_add_setting(PTH_DISTANCE_BETWEEN_WINDOWS, TYPE_INT, 0)
-	# This is a trick to simplify adding new instance args
-	# Same as we would use in Inspector properties to trigger some kind of change|
-	# Basically acts as a button
-	_add_setting(PTH_ADD_INDIVIDUAL_INSTANCE_ARGS, TYPE_BOOL, false)
 	# A Dictionary of 
 	#	{ 'window_idx': args:String }
 	# A key of '-1' would mean arguments applied to ALL windows
@@ -186,31 +215,24 @@ func _add_settings():
 	run_shortcut.control = true
 	_add_setting(PTH_RUN_SHORTCUT, TYPE_DICTIONARY, run_shortcut)
 	
+	var run_instance_shortcut := mk_dummy_shortcut_dict()
+	run_instance_shortcut.scancode = KEY_F7
+	run_instance_shortcut.control = true
+	_add_setting(PTH_RUN_INSTANCE_SHORTCUT, TYPE_DICTIONARY, run_instance_shortcut)
+	
 	var stop_shortcut := mk_dummy_shortcut_dict()
 	stop_shortcut.scancode = KEY_F8
 	stop_shortcut.control = true
 	_add_setting(PTH_STOP_SHORTCUT, TYPE_DICTIONARY, stop_shortcut)
 
 
-# To ease adding new instance args, we query ProjectSettings for changes
-# Add create a placeholder for each individual_instance_args entry
 func _on_project_settings_changed():
-	var individual_instance_args: Dictionary 	= ProjectSettings.get_setting(PTH_INDIVIDUAL_INSTANCE_ARGS)
-	var add_individual_instance_args: bool 		= ProjectSettings.get_setting(PTH_ADD_INDIVIDUAL_INSTANCE_ARGS)
-	
-	if add_individual_instance_args:
-		ProjectSettings.call_deferred('set_setting', PTH_ADD_INDIVIDUAL_INSTANCE_ARGS, false)
-		
-		var window_idx = -1
-		if individual_instance_args.size() > 0:
-			window_idx = individual_instance_args.keys()[individual_instance_args.size() - 1] + 1
-		individual_instance_args[window_idx] = ''
-	
-	for window_idx in individual_instance_args:
-		if !(individual_instance_args[window_idx] is String):
-			individual_instance_args[window_idx] = ''
-	
-	ProjectSettings.set_setting(PTH_INDIVIDUAL_INSTANCE_ARGS, individual_instance_args)
+	var window_count: int = ProjectSettings.get_setting(PTH_NUMBER_OF_WINDOWS)
+	button_run_instance.clear()
+	for idx in range(0, window_count):
+		button_run_instance.add_item('Instance %d' % [idx + 1])
+	button_run_instance.select(-1)
+	button_run_instance.icon = icons.transition_end
 
 
 # Shorthand for adding a setting
@@ -232,8 +254,9 @@ func _add_setting(name:String, type, value):
 #-------------------------------------------------------------------------------
 
 
-func run_all_instances():
-	kill_all_instances()
+# instance_list of -1 == run all instances
+func run_instances(instance_list: Array = [-1]):
+	kill_instances(instance_list)
 	
 	var window_count: int 						= ProjectSettings.get_setting(PTH_NUMBER_OF_WINDOWS)
 	# Later on we will mix in distance between adjacent windows
@@ -250,18 +273,26 @@ func run_all_instances():
 	var rows := int(ceil(float(window_count) / columns))
 	screen_size -= Vector2(window_dist * (columns - 1), window_dist * (rows - 1))
 	
-	for i in range(0, window_count):
+	if instance_list.has(-1):
+		instance_list = []
+		for i in range(0, window_count):
+			instance_list.append(i)
+	
+	for i in instance_list:
 		var size := screen_size / Vector2(columns, rows)
 		var pos := Vector2()
 		pos.x = (i % columns) * (screen_size.x / columns) + (i % columns) * window_dist
 		pos.y = (i / columns) * (screen_size.y / rows) + (i / columns) * window_dist
+		var window_title = 'Instance-1 Main'
+		if i != 0:
+			window_title = 'Instance-%d' % [i + 1]
 		
 		var instance_args := [
 			'--window_pos_x=%d' % [int(pos.x)],
 			'--window_pos_y=%d' % [int(pos.y)],
 			'--window_size_x=%d' % [int(size.x)],
 			'--window_size_y=%d' % [int(size.y)],
-			'--window_title="Instance %d"' % [i] if i != 0 else '--window_title="Instance %d Main"' % [i],
+			'--window_title="%s"' % [window_title],
 			'--user_subfolder="multirun_inst_%d"' % [i]
 		]
 		
@@ -282,7 +313,13 @@ func run_all_instances():
 			run_main_instance(instance_args, main_run_args)
 		# If not, run executable with arguments
 		else:
-			instance_pids.append(OS.execute(OS.get_executable_path(), instance_args, false, [], false, true))
+			var path = OS.get_executable_path()
+			match OS.get_name():
+				'Windows':
+					var windows_args = ['/k', '"%s" %s' % [path, PoolStringArray(instance_args).join(' ')]]
+					instance_pids[i] = OS.execute('cmd', windows_args, false, [], false, true)
+				_:
+					instance_pids[i] = OS.execute(path, instance_args, false, [], false, true)
 	
 	_set_are_instances_running(true)
 
@@ -297,12 +334,26 @@ func run_main_instance(instance_args: Array, main_run_args: Array):
 	ProjectSettings.set_setting("editor/main_run_args",  PoolStringArray(main_run_args).join(' '))
 
 
-func kill_all_instances():
-	_kill_main_instance()
+func kill_instances(instance_list: Array = [-1]):
+	var window_count: int 						= ProjectSettings.get_setting(PTH_NUMBER_OF_WINDOWS)
+	if instance_list.has(-1):
+		instance_list = []
+		for i in range(0, window_count):
+			instance_list.append(i)
 	
-	for pid in instance_pids:
-		OS.kill(pid)
-	instance_pids = []
+	for i in instance_list:
+		if i == 0:
+			_kill_main_instance()
+			continue
+		if !instance_pids.has(i): continue
+		
+		var pid = instance_pids[i]
+		match OS.get_name():
+			'Windows':
+				OS.execute('taskkill', ['/T', '/PID', str(pid)])
+			_:
+				OS.kill(pid)
+		instance_pids.erase(i)
 	
 	_set_are_instances_running(false)
 
@@ -314,11 +365,11 @@ func _kill_main_instance():
 
 func _set_are_instances_running(val):
 	are_instances_running = val
-	_update_run_button_icon()
+	_update_button_icons()
 
 
 func _is_any_instance_running():
-	for pid in instance_pids:
+	for pid in instance_pids.values():
 		if OS.is_process_running(pid):
 			return true
 	
